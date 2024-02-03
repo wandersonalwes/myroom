@@ -9,7 +9,14 @@ export const Logo = () => {
   return (
     <div className="flex items-center gap-x-4">
       <Video />
-      <span className={cn(syne.className, 'font-bold text-lg')}>myroom</span>
+      <span
+        className={cn(
+          syne.className,
+          'font-bold text-lg hidden sm:inline-block'
+        )}
+      >
+        myroom
+      </span>
     </div>
   )
 }
