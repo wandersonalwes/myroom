@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 
 export default function RoomPage() {
   const { socket } = useSocket()
+
   useEffect(() => {
     if (!socket) return
 
