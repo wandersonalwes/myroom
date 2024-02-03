@@ -1,20 +1,23 @@
+import cors from 'cors'
+import express from 'express'
 import { Server } from 'socket.io'
 import { createServer } from 'node:http'
-import express from 'express'
 
 const port = process.env.PORT || 4000
 
 const app = express()
+app.use(cors({ origin: '*' }))
 const server = createServer(app)
 
-const io = new Server({
+const io = new Server(server, {
   cors: {
-    origin: ['*'],
+    origin: '*',
+    methods: ['POST'],
   },
 })
 
-io.on('connection', (data) => {
-  console.log('connected', data.id)
+io.on('connection', (socket) => {
+  console.log(`connected: ${socket.id}`)
 })
 
 server.listen(port, () => {
