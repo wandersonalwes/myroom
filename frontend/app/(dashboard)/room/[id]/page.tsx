@@ -10,15 +10,6 @@ import { cn } from '@/lib/utils'
 import { LobbyProvider } from '@/context/lobby'
 
 export default function RoomPage() {
-  const { socket } = useSocket()
-
-  useEffect(() => {
-    if (!socket) return
-
-    socket.on('connect', () => {
-      console.log('connected', socket.id)
-    })
-  }, [socket])
   return (
     <LobbyProvider>
       <main

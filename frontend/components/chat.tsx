@@ -1,29 +1,27 @@
+import { useLobby } from '@/hooks/useLobby'
 import { ChatMessage } from './chat-message'
-
-const messages = [
-  {
-    name: 'Miguel',
-    message: 'Heeeey, cheguei',
-    time: '5m',
-  },
-  {
-    name: 'Miguel',
-    message: 'E aí',
-    time: '4m',
-  },
-  {
-    name: 'Wanderson',
-    message: 'Oiie',
-    time: '1s',
-  },
-]
+import { Alert, AlertDescription, AlertTitle } from './ui/alert'
+import { AlertTriangle } from 'lucide-react'
+import { ScrollArea } from './ui/scroll-area'
 
 export const Chat = () => {
+  const { messages } = useLobby()
+
   return (
-    <aside className="p-4 border-l space-y-4 hidden lg:block">
-      {messages.map((message, index) => (
-        <ChatMessage key={index} {...message} />
-      ))}
-    </aside>
+    <ScrollArea className="border-l">
+      <aside className="p-4 border-l space-y-4 hidden lg:block">
+        <Alert>
+          <AlertTriangle className="h-4 w-4 text-foreground/70" />
+          <AlertDescription className="text-foreground/70">
+            As mensagens só aparecem para as pessoas na chamada quando são
+            enviadas, e são excluídas quando a ligação é encerrada.
+          </AlertDescription>
+        </Alert>
+
+        {messages.map((message) => (
+          <ChatMessage key={message.id} {...message} />
+        ))}
+      </aside>
+    </ScrollArea>
   )
 }

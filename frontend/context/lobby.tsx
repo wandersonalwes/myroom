@@ -1,14 +1,23 @@
 'use client'
 
 import { useSocket } from '@/hooks/socket'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import {
   MutableRefObject,
   createContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
+
+type MessageType = {
+  id: string
+  username: string
+  message: string
+  date: string
+  roomId: string
+}
 
 type LobbyContextProps = {
   toggleCamera: () => void
@@ -19,6 +28,8 @@ type LobbyContextProps = {
   cameraEnabled: boolean
   audioEnabled: boolean
   sharingScreen: boolean
+  messages: MessageType[]
+  setMessages: React.Dispatch<React.SetStateAction<MessageType[]>>
 }
 
 export const LobbyContext = createContext<LobbyContextProps>(
@@ -33,6 +44,12 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
   const [sharingScreen, setSharingScreen] = useState(false)
   const localStream = useRef<MediaStream | null>(null)
   const localVideo = useRef<HTMLVideoElement | null>(null)
+
+  const params = useParams<{ id: string }>()
+
+  const roomId = useMemo(() => params.id, [params.id])
+
+  const [messages, setMessages] = useState<MessageType[]>([])
 
   const initLocalCamera = async () => {
     const mediaStrem = await navigator.mediaDevices.getUserMedia({
@@ -102,6 +119,21 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     initLocalCamera()
   }, [])
 
+  useEffect(() => {
+    socket?.on('connect', () => {
+      console.log('connected', socket.id)
+
+      socket.emit('subscribe', {
+        roomId,
+        socketId: socket.id,
+      })
+    })
+
+    socket?.on('chat:received', (data: MessageType) => {
+      setMessages((currentMessages) => [...currentMessages, data])
+    })
+  }, [roomId, socket])
+
   return (
     <LobbyContext.Provider
       value={{
@@ -113,6 +145,8 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
         sharingScreen,
         toggleShareScreen,
         leaveCall,
+        messages,
+        setMessages,
       }}
     >
       {children}
