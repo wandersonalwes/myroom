@@ -5,11 +5,28 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   MutableRefObject,
   createContext,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
+
+type DataStream = {
+  id: string
+  stream: MediaStream
+  username: string
+}
+
+type SDPData = {
+  sender: string
+  description: RTCSessionDescriptionInit
+}
+
+type CandidateData = {
+  sender: string
+  candidate: RTCIceCandidate
+}
 
 type MessageType = {
   id: string
@@ -30,6 +47,7 @@ type LobbyContextProps = {
   sharingScreen: boolean
   messages: MessageType[]
   setMessages: React.Dispatch<React.SetStateAction<MessageType[]>>
+  remoteStreams: DataStream[]
 }
 
 export const LobbyContext = createContext<LobbyContextProps>(
@@ -42,8 +60,13 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
   const [cameraEnabled, setCameraEnabled] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [sharingScreen, setSharingScreen] = useState(false)
-  const localStream = useRef<MediaStream | null>(null)
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const localVideo = useRef<HTMLVideoElement | null>(null)
+  const peerConnections = useRef<Record<string, RTCPeerConnection>>({})
+  const [remoteStreams, setRemoteStreams] = useState<DataStream[]>([])
+  const [videoMediaStream, setVideoMediaStream] = useState<MediaStream | null>(
+    null
+  )
 
   const params = useParams<{ id: string }>()
 
@@ -60,24 +83,37 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
       },
     })
 
-    localStream.current = mediaStrem
+    setLocalStream(mediaStrem)
 
     if (localVideo.current) localVideo.current.srcObject = mediaStrem
 
+    setVideoMediaStream(mediaStrem)
     setCameraEnabled(true)
     setAudioEnabled(true)
   }
 
+  const initRemoteCamera = async () => {
+    const mediaStrem = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+      },
+    })
+
+    return mediaStrem
+  }
+
   const toggleCamera = () => {
     setCameraEnabled(!cameraEnabled)
-    localStream.current?.getVideoTracks().forEach((track) => {
+    localStream?.getVideoTracks().forEach((track) => {
       track.enabled = !cameraEnabled
     })
   }
 
   const toggleAudio = () => {
     setAudioEnabled(!audioEnabled)
-    localStream.current?.getAudioTracks().forEach((track) => {
+    localStream?.getAudioTracks().forEach((track) => {
       track.enabled = !audioEnabled
     })
   }
@@ -87,7 +123,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
       video: true,
     })
 
-    localStream.current = videoShareScreen
+    setLocalStream(videoShareScreen)
 
     if (localVideo.current) localVideo.current.srcObject = videoShareScreen
 
@@ -95,7 +131,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const stopScreenSharing = async () => {
-    localStream.current?.getTracks().forEach((track) => track.stop())
+    localStream?.getTracks().forEach((track) => track.stop())
     setSharingScreen(false)
 
     await initLocalCamera()
@@ -105,7 +141,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     sharingScreen ? stopScreenSharing() : shareScreen()
 
   const leaveCall = async () => {
-    localStream.current?.getTracks().forEach((track) => track.stop())
+    localStream?.getTracks().forEach((track) => track.stop())
 
     socket?.disconnect()
     router.push('/')
@@ -114,6 +150,143 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     setCameraEnabled(false)
     setSharingScreen(false)
   }
+
+  const handleSDP = useCallback(
+    async (data: SDPData) => {
+      const peerConnection = peerConnections.current[data.sender]
+
+      if (data.description.type === 'offer') {
+        await peerConnection.setRemoteDescription(data.description)
+
+        const answer = await peerConnection.createAnswer()
+        await peerConnection.setLocalDescription(answer)
+
+        socket?.emit('peer:answer', {
+          to: data.sender,
+          sender: socket?.id,
+          description: peerConnection.localDescription,
+        })
+      } else if (data.description.type === 'answer') {
+        await peerConnection.setRemoteDescription(
+          new RTCSessionDescription(data.description)
+        )
+      }
+    },
+    [socket]
+  )
+
+  const handleIceCandidate = async (data: CandidateData) => {
+    const peerConnection = peerConnections.current[data.sender]
+    if (data.candidate) {
+      await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+    }
+  }
+
+  const createPeerConnection = useCallback(
+    async (socketId: string, createOffer = false) => {
+      try {
+        const peerConnection = peerConnections.current[socketId]
+
+        if (peerConnection) return
+
+        const config = {
+          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        }
+
+        const peer = new RTCPeerConnection(config)
+
+        peerConnections.current[socketId] = peer
+
+        if (videoMediaStream) {
+          videoMediaStream.getTracks().forEach((track) => {
+            peer.addTrack(track, videoMediaStream)
+          })
+        } else {
+          const video = await initRemoteCamera()
+          video.getTracks().forEach((track) => peer.addTrack(track, video))
+        }
+
+        if (createOffer) {
+          const offer = await peer.createOffer()
+          await peer.setLocalDescription(offer)
+
+          socket?.emit('peer:offer', {
+            to: socketId,
+            sender: socket.id,
+            description: peer.localDescription,
+          })
+        }
+
+        peer.ontrack = (event) => {
+          const remoteStream = event.streams[0]
+
+          if (videoMediaStream) {
+          }
+
+          const dataStream: DataStream = {
+            id: socketId,
+            stream: remoteStream,
+            username: 'Wanderson',
+          }
+
+          setRemoteStreams((prevState: DataStream[]) => {
+            if (!prevState.some((stream) => stream.id === socketId)) {
+              return [...prevState, dataStream]
+            }
+            return prevState
+          })
+
+          setRemoteStreams((prevState: DataStream[]) => {
+            if (!prevState.some((stream) => stream.id === socketId)) {
+              return [...prevState, dataStream]
+            }
+            return prevState
+          })
+        }
+
+        peer.onicecandidate = (event) => {
+          console.log('onicecandidate', event)
+          if (event.candidate) {
+            socket?.emit('peer:icecandidate', {
+              to: socketId,
+              sender: socket.id,
+              candidate: event.candidate,
+            })
+          }
+        }
+
+        peer.onicecandidateerror = (event) => {
+          console.log('onicecandidateerror', event)
+        }
+
+        peer.onsignalingstatechange = () => {
+          console.log('onsignalingstatechange', peer.signalingState)
+
+          if (peer.signalingState === 'closed') {
+            setRemoteStreams((prevState) =>
+              prevState.filter((stream) => stream.id !== socketId)
+            )
+          }
+        }
+
+        peer.onconnectionstatechange = () => {
+          console.log('onconnectionstatechange', peer.connectionState)
+
+          const states = ['disconnected', 'failed', 'closed']
+
+          if (states.includes(peer.connectionState)) {
+            console.log('helloooo')
+            setRemoteStreams((prevState) =>
+              prevState.filter((stream) => stream.id !== socketId)
+            )
+          }
+        }
+      } catch (error) {
+        console.log('createPeerConnection:', error)
+      }
+    },
+    [socket]
+  )
 
   useEffect(() => {
     initLocalCamera()
@@ -132,7 +305,37 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     socket?.on('chat:received', (data: MessageType) => {
       setMessages((currentMessages) => [...currentMessages, data])
     })
-  }, [roomId, socket])
+
+    socket?.on('peer:start', (data) => {
+      console.log('peer:start', data)
+      createPeerConnection(data.socketId)
+
+      socket.emit('peer:active_user', {
+        to: data.socketId,
+        sender: socket.id,
+        username: 'Wanderson',
+      })
+    })
+
+    socket?.on('peer:active_user', (data) => {
+      console.log('peer:active_user', data)
+
+      createPeerConnection(data.sender, true)
+    })
+
+    socket?.on('peer:offer', async (data) => {
+      console.log('peer:offer', data)
+      await handleSDP(data)
+    })
+
+    socket?.on('peer:answer', async (data) => {
+      console.log('peer:answer', data)
+
+      await handleSDP(data)
+    })
+
+    socket?.on('peer:icecandidate', handleIceCandidate)
+  }, [createPeerConnection, handleSDP, roomId, socket])
 
   return (
     <LobbyContext.Provider
@@ -147,6 +350,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
         leaveCall,
         messages,
         setMessages,
+        remoteStreams,
       }}
     >
       {children}

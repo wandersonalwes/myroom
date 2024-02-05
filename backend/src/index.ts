@@ -2,7 +2,11 @@ import cors from 'cors'
 import express from 'express'
 import { Server } from 'socket.io'
 import { createServer } from 'node:http'
-import { EventChatPublishedData, EventSubscribeData } from './types/socket'
+import {
+  EventChatPublishedData,
+  EventPeerActiveUserData,
+  EventSubscribeData,
+} from './types/socket'
 import { logger } from './utils/logger'
 
 const port = process.env.PORT || 4000
@@ -24,6 +28,51 @@ io.on('connection', (socket) => {
   socket.on('subscribe', (data: EventSubscribeData) => {
     logger('subscribe', data)
     socket.join(data.roomId)
+
+    const roomSession = Array.from(socket.rooms)
+
+    if (roomSession.length > 1) {
+      socket.to(data.roomId).emit('peer:start', {
+        socketId: data.socketId,
+        username: 'Wanderson',
+      })
+    }
+  })
+
+  socket.on('peer:active_user', (data: EventPeerActiveUserData) => {
+    logger('peer:active_user', data)
+
+    socket.to(data.to).emit('peer:active_user', {
+      sender: data.sender,
+      username: data.username,
+    })
+  })
+
+  socket.on('peer:offer', (data) => {
+    logger('peer:offer', data)
+
+    socket.to(data.to).emit('peer:offer', {
+      description: data.description,
+      sender: data.sender,
+    })
+  })
+
+  socket.on('peer:answer', (data) => {
+    logger('peer:answer', data)
+
+    socket.to(data.to).emit('peer:answer', {
+      description: data.description,
+      sender: data.sender,
+    })
+  })
+
+  socket.on('peer:icecandidate', (data) => {
+    logger('peer:icecandidate', data)
+
+    socket.to(data.to).emit('peer:icecandidate', {
+      candidate: data.candidate,
+      sender: data.sender,
+    })
   })
 
   socket.on('chat:published', (data: EventChatPublishedData) => {

@@ -10,3 +10,9 @@ export type EventChatPublishedData = {
   username: string
   roomId: string
 }
+
+export type EventPeerActiveUserData = {
+  to: string
+  sender: string
+  username: string
+}
