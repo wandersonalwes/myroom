@@ -1,5 +1,7 @@
+import Link from 'next/link'
 import { Logo } from './logo'
-import { Button } from './ui/button'
+import { Button, buttonVariants } from './ui/button'
+import { cn } from '@/lib/utils'
 
 export const Header = () => {
   return (
@@ -7,13 +9,22 @@ export const Header = () => {
       <div className="container flex justify-between items-center">
         <Logo />
 
-        <div className="spaceq-x-4">
-          <Button variant="ghost" rounded="full">
+        <div className="space-x-4">
+          <Link
+            className={cn(buttonVariants({ variant: 'ghost', rounded: true }))}
+            href="/login"
+          >
             Entrar
-          </Button>
-          <Button variant="outline" rounded="full">
+          </Link>
+
+          <Link
+            href="/sign-up"
+            className={cn(
+              buttonVariants({ variant: 'outline', rounded: true })
+            )}
+          >
             Criar conta
-          </Button>
+          </Link>
         </div>
       </div>
     </header>

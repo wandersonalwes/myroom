@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils'
 import { Syne } from 'next/font/google'
-import { Button } from './ui/button'
+import { Button, buttonVariants } from './ui/button'
 import { BallLuminance, DashPreview } from '@/icons'
+import Link from 'next/link'
 
 const syne = Syne({ subsets: ['latin'] })
 
@@ -26,7 +27,12 @@ export const Hero = () => {
         </p>
 
         <div className="mt-12">
-          <Button rounded="full">Começar</Button>
+          <Link
+            href="/sign-up"
+            className={cn(buttonVariants({ rounded: true }))}
+          >
+            Começar
+          </Link>
         </div>
 
         <BallLuminance className="absolute inset-x-0 w-6/12 h-6/12 max-w-96 max-h-96 mx-auto blur-3xl" />
