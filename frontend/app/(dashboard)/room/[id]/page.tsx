@@ -1,7 +1,5 @@
 'use client'
-import { useEffect } from 'react'
 import { Chat } from '@/components/chat'
-import { useSocket } from '@/hooks/socket'
 import { DashHeader } from '@/components/dash-header'
 import { RoomFooter } from '@/components/room-footer'
 import { Participants } from '@/components/participants'

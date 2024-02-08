@@ -41,7 +41,9 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${
+          window.location ? window.location.origin : ''
+        }/auth/callback`,
         shouldCreateUser: false,
       },
     })
@@ -57,6 +59,7 @@ export default function LoginPage() {
 
     router.push(`/pin?email=${email}`)
   }
+
   return (
     <div className="min-h-screen flex justify-center items-center relative">
       <div className="space-y-4 p-4 max-w-sm w-full bg-zinc-950">

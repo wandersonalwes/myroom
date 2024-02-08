@@ -1,31 +1,18 @@
-import Link from 'next/link'
 import { Logo } from './logo'
-import { Button, buttonVariants } from './ui/button'
-import { cn } from '@/lib/utils'
+import { HeaderRight } from './header-right'
+import { isSigned } from '@/lib/supabase/isSigned'
+import Link from 'next/link'
 
-export const Header = () => {
+export const Header = async () => {
+  const signed = await isSigned()
   return (
     <header className="h-16 flex items-center sticky top-0 backdrop-blur-2xl z-50">
       <div className="container flex justify-between items-center">
-        <Logo />
+        <Link href="/">
+          <Logo />
+        </Link>
 
-        <div className="space-x-4">
-          <Link
-            className={cn(buttonVariants({ variant: 'ghost', rounded: true }))}
-            href="/login"
-          >
-            Entrar
-          </Link>
-
-          <Link
-            href="/sign-up"
-            className={cn(
-              buttonVariants({ variant: 'outline', rounded: true })
-            )}
-          >
-            Criar conta
-          </Link>
-        </div>
+        <HeaderRight signed={signed} />
       </div>
     </header>
   )

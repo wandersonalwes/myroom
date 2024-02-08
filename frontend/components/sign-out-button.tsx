@@ -13,5 +13,9 @@ export const SignOutButton = () => {
     router.push('/')
   }
 
-  return <Button onClick={handleSignOut}>sair</Button>
+  return (
+    <Button variant="ghost" rounded onClick={handleSignOut}>
+      Sair
+    </Button>
+  )
 }

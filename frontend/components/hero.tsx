@@ -1,12 +1,14 @@
 import { cn } from '@/lib/utils'
 import { Syne } from 'next/font/google'
-import { Button, buttonVariants } from './ui/button'
+import { buttonVariants } from './ui/button'
 import { BallLuminance, DashPreview } from '@/icons'
 import Link from 'next/link'
+import { isSigned } from '@/lib/supabase/isSigned'
 
 const syne = Syne({ subsets: ['latin'] })
 
-export const Hero = () => {
+export const Hero = async () => {
+  const signed = await isSigned()
   return (
     <section className="relative">
       <div className="container text-center">
@@ -28,7 +30,7 @@ export const Hero = () => {
 
         <div className="mt-12">
           <Link
-            href="/sign-up"
+            href={signed ? '/dashboard' : '/sign-up'}
             className={cn(buttonVariants({ rounded: true }))}
           >
             Começar

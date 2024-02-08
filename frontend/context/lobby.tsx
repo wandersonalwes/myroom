@@ -144,7 +144,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     localStream?.getTracks().forEach((track) => track.stop())
 
     socket?.disconnect()
-    router.push('/')
+    router.push('/dashboard')
 
     setAudioEnabled(false)
     setCameraEnabled(false)
