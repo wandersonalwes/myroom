@@ -1,11 +1,13 @@
 import { useSocket } from '@/hooks/socket'
 import { useLobby } from '@/hooks/useLobby'
+import { useUser } from '@/hooks/useUser'
 import { getNanoId } from '@/lib/nanoid'
 import { Send } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { FormEvent, useRef } from 'react'
 
 export const SendMessage = () => {
+  const { user } = useUser()
   const { socket } = useSocket()
   const { setMessages } = useLobby()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -24,7 +26,7 @@ export const SendMessage = () => {
       id: getNanoId(),
       message,
       date: new Date().toISOString(),
-      username: 'Wanderson',
+      username: user?.user_metadata.name,
       roomId,
     }
 
@@ -45,7 +47,7 @@ export const SendMessage = () => {
         className="absolute inset-0 outline-none bg-transparent px-4"
       />
 
-      <button type="submit" className="absolute top-8 right-4">
+      <button type="submit" className="absolute top-8 right-4" disabled={!user}>
         <Send />
       </button>
     </form>

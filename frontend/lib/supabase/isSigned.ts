@@ -1,11 +1,6 @@
-import { cookies } from 'next/headers'
-import { createClient } from './server'
+import { getUserByServer } from './getUserByServer'
 
 export const isSigned = async () => {
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
-
-  const { data } = await supabase.auth.getUser()
-
-  return !!data.user
+  const user = await getUserByServer()
+  return !!user
 }

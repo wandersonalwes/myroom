@@ -1,6 +1,7 @@
 export type EventSubscribeData = {
   roomId: string
   socketId: string
+  username: string
 }
 
 export type EventChatPublishedData = {

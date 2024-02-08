@@ -1,6 +1,8 @@
 'use client'
 
 import { useSocket } from '@/hooks/socket'
+import { useUser } from '@/hooks/useUser'
+import { getUserByClient } from '@/lib/supabase/getUserByClient'
 import { useParams, useRouter } from 'next/navigation'
 import {
   MutableRefObject,
@@ -183,7 +185,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const createPeerConnection = useCallback(
-    async (socketId: string, createOffer = false) => {
+    async (socketId: string, createOffer: boolean, username?: string) => {
       try {
         const peerConnection = peerConnections.current[socketId]
 
@@ -226,7 +228,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
           const dataStream: DataStream = {
             id: socketId,
             stream: remoteStream,
-            username: 'Wanderson',
+            username: username ?? '',
           }
 
           setRemoteStreams((prevState: DataStream[]) => {
@@ -293,34 +295,43 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
   }, [])
 
   useEffect(() => {
-    socket?.on('connect', () => {
+    socket?.on('connect', async () => {
       console.log('connected', socket.id)
 
-      socket.emit('subscribe', {
-        roomId,
-        socketId: socket.id,
-      })
+      const user = await getUserByClient()
+
+      if (user) {
+        socket.emit('subscribe', {
+          roomId,
+          socketId: socket.id,
+          username: user.user_metadata.name,
+        })
+      }
     })
 
     socket?.on('chat:received', (data: MessageType) => {
       setMessages((currentMessages) => [...currentMessages, data])
     })
 
-    socket?.on('peer:start', (data) => {
+    socket?.on('peer:start', async (data) => {
       console.log('peer:start', data)
-      createPeerConnection(data.socketId)
+      createPeerConnection(data.socketId, false)
 
-      socket.emit('peer:active_user', {
-        to: data.socketId,
-        sender: socket.id,
-        username: 'Wanderson',
-      })
+      const user = await getUserByClient()
+
+      if (user) {
+        socket.emit('peer:active_user', {
+          to: data.socketId,
+          sender: socket.id,
+          username: user.user_metadata.name,
+        })
+      }
     })
 
     socket?.on('peer:active_user', (data) => {
       console.log('peer:active_user', data)
 
-      createPeerConnection(data.sender, true)
+      createPeerConnection(data.sender, true, data.username)
     })
 
     socket?.on('peer:offer', async (data) => {
