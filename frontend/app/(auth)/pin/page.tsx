@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { redirect, useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -28,7 +28,6 @@ export default function PinPage() {
   const supabase = createClient()
   const searchParams = useSearchParams()
 
-  const type = searchParams.get('type') as 'email' | 'signup'
   const email = searchParams.get('email') as string
   const validEmail = emailSchema.safeParse(email).success
 
@@ -56,7 +55,7 @@ export default function PinPage() {
   }
 
   if (!email || !validEmail) {
-    return redirect('/login')
+    return router.replace('/login')
   }
 
   return (
