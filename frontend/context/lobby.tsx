@@ -19,6 +19,8 @@ type DataStream = {
   id: string
   stream: MediaStream
   username: string
+  audioDisabled: boolean
+  cameraDisabled: boolean
 }
 
 type SDPData = {
@@ -135,6 +137,12 @@ export const LobbyProvider = ({
         }
       })
     })
+
+    socket?.emit('user:camera_changed', {
+      id: user.id,
+      cameraDisabled: cameraEnabled,
+      roomId,
+    })
   }
 
   const toggleAudio = () => {
@@ -155,6 +163,12 @@ export const LobbyProvider = ({
           }
         }
       })
+    })
+
+    socket?.emit('user:audio_changed', {
+      id: user.id,
+      audioDisabled: audioEnabled,
+      roomId,
     })
   }
 
@@ -200,6 +214,7 @@ export const LobbyProvider = ({
 
   const leaveCall = async () => {
     localStream?.getTracks().forEach((track) => track.stop())
+    localVideoShareScreen?.getTracks().forEach((track) => track.stop())
 
     Object.values(peerConnections.current).forEach((peerConnection) => {
       peerConnection.close()
@@ -215,23 +230,27 @@ export const LobbyProvider = ({
 
   const handleSDP = useCallback(
     async (data: SDPData) => {
-      const peerConnection = peerConnections.current[data.sender]
+      try {
+        const peerConnection = peerConnections.current[data.sender]
 
-      if (data.description.type === 'offer') {
-        await peerConnection.setRemoteDescription(data.description)
+        if (data.description.type === 'offer') {
+          await peerConnection.setRemoteDescription(data.description)
 
-        const answer = await peerConnection.createAnswer()
-        await peerConnection.setLocalDescription(answer)
+          const answer = await peerConnection.createAnswer()
+          await peerConnection.setLocalDescription(answer)
 
-        socket?.emit('peer:answer', {
-          to: data.sender,
-          sender: user.id,
-          description: peerConnection.localDescription,
-        })
-      } else if (data.description.type === 'answer') {
-        await peerConnection.setRemoteDescription(
-          new RTCSessionDescription(data.description)
-        )
+          socket?.emit('peer:answer', {
+            to: data.sender,
+            sender: user.id,
+            description: peerConnection.localDescription,
+          })
+        } else if (data.description.type === 'answer') {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(data.description)
+          )
+        }
+      } catch (error) {
+        console.log('sdp ~ error:', error)
       }
     },
     [socket, user.id]
@@ -280,6 +299,7 @@ export const LobbyProvider = ({
         }
 
         peer.ontrack = (event) => {
+          console.log('ontrack', event)
           const remoteStream = event.streams[0]
 
           if (videoMediaStream) {
@@ -289,7 +309,11 @@ export const LobbyProvider = ({
             id: userId,
             stream: remoteStream,
             username: username ?? '',
+            audioDisabled: false,
+            cameraDisabled: false,
           }
+
+          console.log('🚀 ~ dataStream:', dataStream)
 
           setRemoteStreams((prevState: DataStream[]) => {
             if (!prevState.some((stream) => stream.id === userId)) {
@@ -376,7 +400,7 @@ export const LobbyProvider = ({
 
     socket?.on('peer:start', async (data) => {
       console.log('peer:start', data)
-      createPeerConnection(data.userId, false)
+      createPeerConnection(data.userId, false, data.username)
 
       socket.emit('peer:active_user', {
         to: data.userId,
@@ -403,6 +427,38 @@ export const LobbyProvider = ({
     })
 
     socket?.on('peer:icecandidate', handleIceCandidate)
+
+    socket?.on('user:audio_changed', (data) => {
+      console.log('user:audio_changed', data)
+
+      setRemoteStreams((currentState) => {
+        return currentState.map((stream) => {
+          const { id, audioDisabled } = data
+
+          if (stream.id === id) {
+            return { ...stream, audioDisabled }
+          }
+
+          return stream
+        })
+      })
+    })
+
+    socket?.on('user:camera_changed', (data) => {
+      console.log('user:camera_changed', data)
+
+      setRemoteStreams((currentState) => {
+        return currentState.map((stream) => {
+          const { id, cameraDisabled } = data
+
+          if (stream.id === id) {
+            return { ...stream, cameraDisabled }
+          }
+
+          return stream
+        })
+      })
+    })
   }, [
     createPeerConnection,
     handleSDP,

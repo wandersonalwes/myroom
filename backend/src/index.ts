@@ -80,6 +80,16 @@ io.on('connection', (socket) => {
     logger('chat:published', data)
     socket.broadcast.to(data.roomId).emit('chat:received', data)
   })
+
+  socket.on('user:audio_changed', (data) => {
+    logger('user:audio_changed', data)
+    socket.to(data.roomId).emit('user:audio_changed', data)
+  })
+
+  socket.on('user:camera_changed', (data) => {
+    logger('user:camera_changed', data)
+    socket.to(data.roomId).emit('user:camera_changed', data)
+  })
 })
 
 server.listen(port, () => {
