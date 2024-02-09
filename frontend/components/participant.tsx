@@ -1,6 +1,5 @@
 import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
-import { useLobby } from '@/hooks/useLobby'
 import { UserAvatar } from './user-avatar'
 
 type ParticipantProps = {
@@ -9,9 +8,8 @@ type ParticipantProps = {
 
 export const Participant = forwardRef<HTMLVideoElement, ParticipantProps>(
   ({ name }, ref) => {
-    const { cameraEnabled } = useLobby()
-
-    const showUserAvatar = !cameraEnabled
+    // TODO: Verificar se o vídeo dos usuários remotos estão ativados
+    const showUserAvatar = false
 
     return (
       <div className="rounded-lg aspect-video relative overflow-hidden bg-gradient-to-t from-white/20 border">

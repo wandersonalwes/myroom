@@ -7,7 +7,7 @@ import { useUser } from '@/hooks/useUser'
 
 export const Participants = () => {
   const { user } = useUser()
-  const { localVideo, remoteStreams } = useLobby()
+  const { localVideo, remoteStreams, cameraEnabled } = useLobby()
 
   return (
     <ScrollArea className="w-full">

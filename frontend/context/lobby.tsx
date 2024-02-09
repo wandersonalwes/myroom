@@ -111,12 +111,38 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     localStream?.getVideoTracks().forEach((track) => {
       track.enabled = !cameraEnabled
     })
+
+    Object.values(peerConnections.current).forEach((peerConnection) => {
+      peerConnection.getSenders().forEach((sender) => {
+        if (sender.track?.kind === 'video') {
+          sender.replaceTrack(
+            localStream
+              ?.getVideoTracks()
+              .find((track) => track.kind === 'video') || null
+          )
+        }
+      })
+    })
   }
 
   const toggleAudio = () => {
     setAudioEnabled(!audioEnabled)
     localStream?.getAudioTracks().forEach((track) => {
       track.enabled = !audioEnabled
+    })
+
+    Object.values(peerConnections.current).forEach((peerConnection) => {
+      peerConnection.getSenders().forEach((sender) => {
+        if (sender.track?.kind === 'audio') {
+          if (localStream && localStream.getAudioTracks().length > 0) {
+            sender.replaceTrack(
+              localStream
+                ?.getAudioTracks()
+                .find((track) => track.kind === 'audio') || null
+            )
+          }
+        }
+      })
     })
   }
 
@@ -128,6 +154,14 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     setLocalStream(videoShareScreen)
 
     if (localVideo.current) localVideo.current.srcObject = videoShareScreen
+
+    Object.values(peerConnections.current).forEach((peerConnection) => {
+      peerConnection.getSenders().forEach((sender) => {
+        if (sender.track?.kind === 'video') {
+          sender.replaceTrack(localStream?.getVideoTracks()[0] || null)
+        }
+      })
+    })
 
     setSharingScreen(true)
   }
