@@ -8,8 +8,8 @@ export const Chat = () => {
   const { messages } = useLobby()
 
   return (
-    <ScrollArea className="border-l">
-      <aside className="p-4 border-l space-y-4 hidden lg:block">
+    <ScrollArea className="border-l hidden lg:block">
+      <aside className="p-4 border-l space-y-4">
         <Alert>
           <AlertTriangle className="h-4 w-4 text-foreground/70" />
           <AlertDescription className="text-foreground/70">
