@@ -1,5 +1,7 @@
 'use client'
 
+import { ToastAction } from '@/components/ui/toast'
+import { useToast } from '@/components/ui/use-toast'
 import { useSocket } from '@/hooks/socket'
 import { User } from '@supabase/supabase-js'
 import { useParams, useRouter } from 'next/navigation'
@@ -64,6 +66,8 @@ export const LobbyProvider = ({
 }) => {
   const router = useRouter()
   const { socket } = useSocket()
+  const { toast } = useToast()
+  const soundRef = useRef<HTMLAudioElement>(null)
   const [cameraEnabled, setCameraEnabled] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [sharingScreen, setSharingScreen] = useState(false)
@@ -364,6 +368,13 @@ export const LobbyProvider = ({
     })
 
     socket?.on('chat:received', (data: MessageType) => {
+      soundRef.current?.play()
+
+      toast({
+        title: data.username,
+        description: data.message,
+        action: <ToastAction altText="Responder">Responder</ToastAction>,
+      })
       setMessages((currentMessages) => [...currentMessages, data])
     })
 
@@ -401,6 +412,7 @@ export const LobbyProvider = ({
     handleSDP,
     roomId,
     socket,
+    toast,
     user.id,
     user.user_metadata.name,
   ])
@@ -422,6 +434,7 @@ export const LobbyProvider = ({
       }}
     >
       {children}
+      <audio ref={soundRef} src="/notification.mp3"></audio>
     </LobbyContext.Provider>
   )
 }
