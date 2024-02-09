@@ -76,7 +76,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [messages, setMessages] = useState<MessageType[]>([])
 
-  const initLocalCamera = async () => {
+  const initLocalCamera = useCallback(async () => {
     const mediaStrem = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: {
@@ -92,7 +92,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     setVideoMediaStream(mediaStrem)
     setCameraEnabled(true)
     setAudioEnabled(true)
-  }
+  }, [])
 
   const initRemoteCamera = async () => {
     const mediaStrem = await navigator.mediaDevices.getUserMedia({
@@ -291,8 +291,12 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
   )
 
   useEffect(() => {
-    initLocalCamera()
-  }, [])
+    const timeout = setTimeout(initLocalCamera, 500)
+
+    return () => {
+      clearTimeout(timeout)
+    }
+  }, [initLocalCamera])
 
   useEffect(() => {
     socket?.on('connect', async () => {
