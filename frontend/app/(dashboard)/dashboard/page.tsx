@@ -33,8 +33,8 @@ export default async function DashboardPage() {
       <Header />
 
       <div className="container">
-        <div className="flex justify-between items-center pt-24 xl:pt-56">
-          <div>
+        <div className="flex flex-col-reverse md:flex-row gap-8 justify-between items-center pt-24 xl:pt-56">
+          <div className="w-full text-center md:text-start">
             <h2
               className={cn(
                 syne.className,
@@ -46,12 +46,12 @@ export default async function DashboardPage() {
               Let&apos;s go{' '}
             </h2>
 
-            <p className="mt-4 text-foreground/60 max-w-md text-sm sm:text-base">
+            <p className="mt-4 text-foreground/60 max-w-md text-sm sm:text-base mx-auto md:mx-0">
               Crie uma sala e compartilhe o link com seus amigos, ou junte-se a
               uma sala existente!
             </p>
 
-            <div className="flex gap-4 max-w-lg mt-10">
+            <div className="flex flex-col justify-center md:justify-start md:flex-row gap-4 max-w-lg mt-10 mx-auto md:mx-0">
               <Link
                 href={`/room/${getNanoId()}`}
                 className={cn(buttonVariants(), 'space-x-3')}
@@ -65,7 +65,13 @@ export default async function DashboardPage() {
           </div>
 
           <div className="relative">
-            <Image src="/users.png" alt="Usuários" width={328} height={100} />
+            <Image
+              src="/users.png"
+              alt="Usuários"
+              width={328}
+              height={100}
+              className="max-w-40 md:max-w-max"
+            />
             <BallLuminance className="absolute inset-x-0 w-6/12 h-6/12 max-w-96 max-h-96 mx-auto blur-3xl opacity-20 -top-20" />
           </div>
         </div>
