@@ -27,7 +27,7 @@ export const Room = ({ user }: RoomProps) => {
           )}
         >
           <DashHeader />
-          <Participants />
+          <Participants signedUser={user} />
           <Chat />
           <RoomFooter />
           <SendMessage />
