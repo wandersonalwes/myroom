@@ -1,6 +1,6 @@
 export type EventSubscribeData = {
   roomId: string
-  socketId: string
+  userId: string
   username: string
 }
 

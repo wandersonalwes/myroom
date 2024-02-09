@@ -28,13 +28,13 @@ io.on('connection', (socket) => {
   socket.on('subscribe', (data: EventSubscribeData) => {
     logger('subscribe', data)
     socket.join(data.roomId)
-    socket.join(data.socketId)
+    socket.join(data.userId)
 
     const roomSession = Array.from(socket.rooms)
 
     if (roomSession.length > 1) {
       socket.to(data.roomId).emit('peer:start', {
-        socketId: data.socketId,
+        userId: data.userId,
         username: data.username,
       })
     }

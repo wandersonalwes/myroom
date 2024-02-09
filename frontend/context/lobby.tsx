@@ -3,6 +3,7 @@
 import { useSocket } from '@/hooks/socket'
 import { useUser } from '@/hooks/useUser'
 import { getUserByClient } from '@/lib/supabase/getUserByClient'
+import { User } from '@supabase/supabase-js'
 import { useParams, useRouter } from 'next/navigation'
 import {
   MutableRefObject,
@@ -56,7 +57,13 @@ export const LobbyContext = createContext<LobbyContextProps>(
   {} as LobbyContextProps
 )
 
-export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
+export const LobbyProvider = ({
+  children,
+  user,
+}: {
+  children: React.ReactNode
+  user: User
+}) => {
   const router = useRouter()
   const { socket } = useSocket()
   const [cameraEnabled, setCameraEnabled] = useState(false)
@@ -199,7 +206,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
 
         socket?.emit('peer:answer', {
           to: data.sender,
-          sender: socket?.id,
+          sender: user.id,
           description: peerConnection.localDescription,
         })
       } else if (data.description.type === 'answer') {
@@ -208,7 +215,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
         )
       }
     },
-    [socket]
+    [socket, user.id]
   )
 
   const handleIceCandidate = async (data: CandidateData) => {
@@ -219,9 +226,9 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const createPeerConnection = useCallback(
-    async (socketId: string, createOffer: boolean, username?: string) => {
+    async (userId: string, createOffer: boolean, username?: string) => {
       try {
-        const peerConnection = peerConnections.current[socketId]
+        const peerConnection = peerConnections.current[userId]
 
         if (peerConnection) return
 
@@ -231,7 +238,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
 
         const peer = new RTCPeerConnection(config)
 
-        peerConnections.current[socketId] = peer
+        peerConnections.current[userId] = peer
 
         if (videoMediaStream) {
           videoMediaStream.getTracks().forEach((track) => {
@@ -247,8 +254,8 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
           await peer.setLocalDescription(offer)
 
           socket?.emit('peer:offer', {
-            to: socketId,
-            sender: socket.id,
+            to: userId,
+            sender: user.id,
             description: peer.localDescription,
           })
         }
@@ -260,20 +267,20 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           const dataStream: DataStream = {
-            id: socketId,
+            id: userId,
             stream: remoteStream,
             username: username ?? '',
           }
 
           setRemoteStreams((prevState: DataStream[]) => {
-            if (!prevState.some((stream) => stream.id === socketId)) {
+            if (!prevState.some((stream) => stream.id === userId)) {
               return [...prevState, dataStream]
             }
             return prevState
           })
 
           setRemoteStreams((prevState: DataStream[]) => {
-            if (!prevState.some((stream) => stream.id === socketId)) {
+            if (!prevState.some((stream) => stream.id === userId)) {
               return [...prevState, dataStream]
             }
             return prevState
@@ -284,8 +291,8 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('onicecandidate', event)
           if (event.candidate) {
             socket?.emit('peer:icecandidate', {
-              to: socketId,
-              sender: socket.id,
+              to: userId,
+              sender: user.id,
               candidate: event.candidate,
             })
           }
@@ -300,7 +307,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
 
           if (peer.signalingState === 'closed') {
             setRemoteStreams((prevState) =>
-              prevState.filter((stream) => stream.id !== socketId)
+              prevState.filter((stream) => stream.id !== userId)
             )
           }
         }
@@ -313,7 +320,7 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
           if (states.includes(peer.connectionState)) {
             console.log('helloooo')
             setRemoteStreams((prevState) =>
-              prevState.filter((stream) => stream.id !== socketId)
+              prevState.filter((stream) => stream.id !== userId)
             )
           }
         }
@@ -336,15 +343,11 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
     socket?.on('connect', async () => {
       console.log('connected', socket.id)
 
-      const user = await getUserByClient()
-
-      if (user) {
-        socket.emit('subscribe', {
-          roomId,
-          socketId: socket.id,
-          username: user.user_metadata.name,
-        })
-      }
+      socket.emit('subscribe', {
+        roomId,
+        userId: user.id,
+        username: user.user_metadata.name,
+      })
     })
 
     socket?.on('chat:received', (data: MessageType) => {
@@ -353,17 +356,13 @@ export const LobbyProvider = ({ children }: { children: React.ReactNode }) => {
 
     socket?.on('peer:start', async (data) => {
       console.log('peer:start', data)
-      createPeerConnection(data.socketId, false)
+      createPeerConnection(data.userId, false)
 
-      const user = await getUserByClient()
-
-      if (user) {
-        socket.emit('peer:active_user', {
-          to: data.socketId,
-          sender: socket.id,
-          username: user.user_metadata.name,
-        })
-      }
+      socket.emit('peer:active_user', {
+        to: data.userId,
+        sender: user.id,
+        username: user.user_metadata.name,
+      })
     })
 
     socket?.on('peer:active_user', (data) => {
