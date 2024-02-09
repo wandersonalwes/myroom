@@ -1,8 +1,6 @@
 'use client'
 
 import { useSocket } from '@/hooks/socket'
-import { useUser } from '@/hooks/useUser'
-import { getUserByClient } from '@/lib/supabase/getUserByClient'
 import { User } from '@supabase/supabase-js'
 import { useParams, useRouter } from 'next/navigation'
 import {
@@ -76,6 +74,8 @@ export const LobbyProvider = ({
   const [videoMediaStream, setVideoMediaStream] = useState<MediaStream | null>(
     null
   )
+  const [localVideoShareScreen, setLocalVideoShareScreen] =
+    useState<MediaStream | null>(null)
 
   const params = useParams<{ id: string }>()
 
@@ -158,26 +158,36 @@ export const LobbyProvider = ({
       video: true,
     })
 
-    setLocalStream(videoShareScreen)
-
     if (localVideo.current) localVideo.current.srcObject = videoShareScreen
 
     Object.values(peerConnections.current).forEach((peerConnection) => {
       peerConnection.getSenders().forEach((sender) => {
         if (sender.track?.kind === 'video') {
-          sender.replaceTrack(localStream?.getVideoTracks()[0] || null)
+          sender.replaceTrack(videoShareScreen?.getVideoTracks()[0] || null)
         }
       })
     })
 
+    setLocalVideoShareScreen(videoShareScreen)
     setSharingScreen(true)
   }
 
   const stopScreenSharing = async () => {
-    localStream?.getTracks().forEach((track) => track.stop())
-    setSharingScreen(false)
+    if (localVideo.current) localVideo.current.srcObject = videoMediaStream
 
-    await initLocalCamera()
+    localVideoShareScreen?.getVideoTracks().map((track) => {
+      track.stop()
+    })
+
+    Object.values(peerConnections.current).forEach((peerConnection) => {
+      peerConnection.getSenders().forEach((sender) => {
+        if (sender.track?.kind === 'video') {
+          sender.replaceTrack(videoMediaStream?.getVideoTracks()[0] || null)
+        }
+      })
+    })
+
+    setSharingScreen(false)
   }
 
   const toggleShareScreen = () =>
@@ -185,6 +195,10 @@ export const LobbyProvider = ({
 
   const leaveCall = async () => {
     localStream?.getTracks().forEach((track) => track.stop())
+
+    Object.values(peerConnections.current).forEach((peerConnection) => {
+      peerConnection.close()
+    })
 
     socket?.disconnect()
     router.push('/dashboard')
@@ -318,7 +332,6 @@ export const LobbyProvider = ({
           const states = ['disconnected', 'failed', 'closed']
 
           if (states.includes(peer.connectionState)) {
-            console.log('helloooo')
             setRemoteStreams((prevState) =>
               prevState.filter((stream) => stream.id !== userId)
             )
@@ -332,7 +345,7 @@ export const LobbyProvider = ({
   )
 
   useEffect(() => {
-    const timeout = setTimeout(initLocalCamera, 500)
+    const timeout = setTimeout(initLocalCamera, 1000)
 
     return () => {
       clearTimeout(timeout)
@@ -383,7 +396,14 @@ export const LobbyProvider = ({
     })
 
     socket?.on('peer:icecandidate', handleIceCandidate)
-  }, [createPeerConnection, handleSDP, roomId, socket])
+  }, [
+    createPeerConnection,
+    handleSDP,
+    roomId,
+    socket,
+    user.id,
+    user.user_metadata.name,
+  ])
 
   return (
     <LobbyContext.Provider
