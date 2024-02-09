@@ -67,7 +67,8 @@ export const LobbyProvider = ({
   const router = useRouter()
   const { socket } = useSocket()
   const { toast } = useToast()
-  const soundRef = useRef<HTMLAudioElement>(null)
+  const notificationSoundRef = useRef<HTMLAudioElement>(null)
+  const newUserSoundRef = useRef<HTMLAudioElement>(null)
   const [cameraEnabled, setCameraEnabled] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [sharingScreen, setSharingScreen] = useState(false)
@@ -292,13 +293,7 @@ export const LobbyProvider = ({
 
           setRemoteStreams((prevState: DataStream[]) => {
             if (!prevState.some((stream) => stream.id === userId)) {
-              return [...prevState, dataStream]
-            }
-            return prevState
-          })
-
-          setRemoteStreams((prevState: DataStream[]) => {
-            if (!prevState.some((stream) => stream.id === userId)) {
+              newUserSoundRef.current?.play()
               return [...prevState, dataStream]
             }
             return prevState
@@ -368,12 +363,13 @@ export const LobbyProvider = ({
     })
 
     socket?.on('chat:received', (data: MessageType) => {
-      soundRef.current?.play()
+      newUserSoundRef.current?.play()
 
       toast({
         title: data.username,
         description: data.message,
         action: <ToastAction altText="Responder">Responder</ToastAction>,
+        duration: 3000,
       })
       setMessages((currentMessages) => [...currentMessages, data])
     })
@@ -434,7 +430,8 @@ export const LobbyProvider = ({
       }}
     >
       {children}
-      <audio ref={soundRef} src="/notification.mp3"></audio>
+      <audio ref={newUserSoundRef} src="/new-user.mp3"></audio>
+      <audio ref={notificationSoundRef} src="/notification.mp3"></audio>
     </LobbyContext.Provider>
   )
 }
