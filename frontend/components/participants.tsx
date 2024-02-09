@@ -7,13 +7,13 @@ import { useUser } from '@/hooks/useUser'
 
 export const Participants = () => {
   const { user } = useUser()
-  const { localVideo, remoteStreams, cameraEnabled } = useLobby()
+  const { localVideo, remoteStreams } = useLobby()
 
   return (
     <ScrollArea className="w-full">
       <div className="flex-1 p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 place-content-start">
         {user ? (
-          <Participant ref={localVideo} name={user.user_metadata.name} />
+          <Participant ref={localVideo} name={user.user_metadata.name} muted />
         ) : (
           <div className="rounded-lg aspect-video  bg-gradient-to-t from-white/20 border animate-pulse" />
         )}
@@ -21,6 +21,7 @@ export const Participants = () => {
         {remoteStreams.map(({ stream, username }, index) => (
           <Participant
             key={index}
+            muted={false}
             ref={(video) => {
               if (stream && video && !video.srcObject) {
                 video.srcObject = stream

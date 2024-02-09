@@ -4,10 +4,11 @@ import { UserAvatar } from './user-avatar'
 
 type ParticipantProps = {
   name: string
+  muted: boolean
 }
 
 export const Participant = forwardRef<HTMLVideoElement, ParticipantProps>(
-  ({ name }, ref) => {
+  ({ name, muted }, ref) => {
     // TODO: Verificar se o vídeo dos usuários remotos estão ativados
     const showUserAvatar = false
 
@@ -24,6 +25,7 @@ export const Participant = forwardRef<HTMLVideoElement, ParticipantProps>(
 
         <video
           ref={ref}
+          muted={muted}
           autoPlay
           className={cn('w-full h-full object-cover')}
         ></video>
