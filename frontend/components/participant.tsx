@@ -27,7 +27,7 @@ export const Participant = forwardRef<HTMLVideoElement, ParticipantProps>(
           ref={ref}
           muted={muted}
           autoPlay
-          className={cn('w-full h-full object-cover')}
+          className={cn('w-full h-full object-cover scale-x-[-1]')}
         ></video>
 
         <span className="absolute left-4 bottom-4 text-foreground/80">
