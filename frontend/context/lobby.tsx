@@ -91,22 +91,29 @@ export const LobbyProvider = ({
   const [messages, setMessages] = useState<MessageType[]>([])
 
   const initLocalCamera = useCallback(async () => {
-    const mediaStrem = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-      },
-    })
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const mediaStrem = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      })
 
-    setLocalStream(mediaStrem)
+      setLocalStream(mediaStrem)
 
-    if (localVideo.current) localVideo.current.srcObject = mediaStrem
+      if (localVideo.current) localVideo.current.srcObject = mediaStrem
 
-    setVideoMediaStream(mediaStrem)
-    setCameraEnabled(true)
-    setAudioEnabled(true)
-  }, [])
+      setVideoMediaStream(mediaStrem)
+      setCameraEnabled(true)
+      setAudioEnabled(true)
+    } else {
+      toast({
+        title: 'Ops',
+        description: 'Seu navegador não suporta getUserMedia',
+      })
+    }
+  }, [toast])
 
   const initRemoteCamera = async () => {
     const mediaStrem = await navigator.mediaDevices.getUserMedia({
