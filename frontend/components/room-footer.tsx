@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useLobby } from '@/hooks/useLobby'
+import { MobileChat } from './mobile-chat'
 
 export const RoomFooter = () => {
   const {
@@ -57,6 +58,8 @@ export const RoomFooter = () => {
       >
         <Phone />
       </Button>
+
+      <MobileChat />
     </footer>
   )
 }
